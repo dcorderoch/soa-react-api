@@ -6,7 +6,7 @@ var counter=0;
 
 
 
-router.get('/spaces',function(req,res,next){
+router.get('/spaces', function(req, res, next){
   if(req.body.state!=undefined){
     let result = []
     for(let i = 0; i<spaces.length;i++){
@@ -23,7 +23,7 @@ router.get('/spaces',function(req,res,next){
 })
 
 
-router.get('/spaces/:id',function(req,res,next){
+router.get('/spaces/:id', function(req, res, next){
   let result;
   for(let i = 0; i<spaces.length;i++){
     if(spaces[i].id==Number(req.params.id)){
@@ -33,50 +33,50 @@ router.get('/spaces/:id',function(req,res,next){
       return
     }
   }
-  res.send({error:true,message:"No se existe espacio con el id indicado"})
+  res.send({error:true, message:"No se existe espacio con el id indicado"})
 
 })
 
-router.post('/spaces',function(req,res,next){
-  let space=`{"id":${counter},"state":"free","data":"original","carID":"","date":""}`
+router.post('/spaces', function(req, res, next){
+  let space=`{"id":${counter}, "state":"free", "data":"original", "carID":"", "date":""}`
   console.log(JSON.parse(space))
   spaces.push(JSON.parse(space));
   counter++;
 
-  res.status(200).send({error:false,message:"éxito al crear espacio"});
+  res.status(200).send({error:false, message:"éxito al crear espacio"});
 })
 
-router.put('/spaces/:id',function(req,res,next){
+router.put('/spaces/:id', function(req, res, next){
   let result;
   for(let i = 0; i<spaces.length;i++){
     if(spaces[i].id==req.params.id){
       result=spaces[i]
       result.data="modified"
-      res.send({error:false,message:"éxito al actulizar"})
+      res.send({error:false, message:"éxito al actulizar"})
       return;
     }
   }
-  res.send({error:true,message:"No existe el espacio"})
+  res.send({error:true, message:"No existe el espacio"})
 })
-router.delete('/spaces/:id',function(req,res,next){
+router.delete('/spaces/:id', function(req, res, next){
   for(let i = 0; i<spaces.length;i++){
     if(spaces[i].id==req.params.id){
       if(spaces[i].state=="free"){
-        spaces.splice(i,1)
-        res.send({error:false,message:"El espacio fué eliminado"})
+        spaces.splice(i, 1)
+        res.send({error:false, message:"El espacio fué eliminado"})
       }
       else{
-        res.send({error:true,message:"El espacio está ocupado"})
+        res.send({error:true, message:"El espacio está ocupado"})
       }
       return;
     }
   }
-  res.send({error:true,message:"No existe el espacio"})
+  res.send({error:true, message:"No existe el espacio"})
 })
 
 
 
-router.get('/reservations',function(req,res,next){
+router.get('/reservations', function(req, res, next){
   result=[]
   for(let i = 0; i<spaces.length;i++){
     if(spaces[i].state=="in-use"){
@@ -86,31 +86,31 @@ router.get('/reservations',function(req,res,next){
   res.status(200).send(result);
 })
 
-router.post('/reservations',function(req,res,next){
+router.post('/reservations', function(req, res, next){
   for(let i = 0; i<spaces.length;i++){
     if(spaces[i].state=="free"){
       spaces[i].state="in-use"
       spaces[i].carID=req.body.carID
       spaces[i].date= new Date()
-      res.send({error:false,message:"éxito al reservar"})
+      res.send({error:false, message:"éxito al reservar"})
       return;
     }
 
   }
-  res.send({error:true,message:"No hay espacios disponibles"})
+  res.send({error:true, message:"No hay espacios disponibles"})
 })
 
-router.delete('/reservations/:id',function(req,res,next){
+router.delete('/reservations/:id', function(req, res, next){
   for(let i = 0; i<spaces.length;i++){
     if(spaces[i].id==req.params.id){
       spaces[i].state='free'
       spaces[i].carID==''
       spaces[i].date==''
-      res.send({error:false,message:"Reservación eliminada"})
+      res.send({error:false, message:"Reservación eliminada"})
       return;
     }
   }
-  res.send({error:true,message:"no existe la reservación"})
+  res.send({error:true, message:"no existe la reservación"})
 })
 
 

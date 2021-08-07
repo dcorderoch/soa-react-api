@@ -18,7 +18,18 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/', indexRouter);
+app.use('/', (req, res, next) => {
+  // NOTE: check if content type is in headers, and if it is application/json
+  let contype = req.headers['content-type'];
+  if(!contype || contype.indexOf('application/json') !== 0)
+  {
+    // NOTE: if if content-type is null/undefined, or is NOT appication/json
+    // return an error
+    // TODO: check HTTP error codes to see if 405 is appropriate
+    req.status(405).send({error: true, message: "unsuppoerted MIME type"});
+  }
+  indexRouter(req, res, next);
+});
 app.use('/users', usersRouter);
 
 // catch 404 and forward to error handler
@@ -29,9 +40,10 @@ app.use(function(req, res, next) {
 // error handler
 app.use(function(err, req, res, next) {
   // set locals, only providing error in development
-  res.status(405).send({error:true,message:"método no existente"})
+  res.status(405).send({error:true, message:"método no existente"})
 });
 
-app.listen(3088)
+let port = 3088; // NOTE: add variable to make this searchable
+app.listen(port)
 
 module.exports = app;

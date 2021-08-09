@@ -1,17 +1,14 @@
-var express = require("express");
-var router = express.Router();
+let express = require("express");
+let router = express.Router();
 
-var spaces = [];
-var counter = 0;
+let spaces = [];
+let counter = 0;
 
 router.get("/spaces", (req, res, next) => {
   if (req.body.state !== undefined) {
-    let result = [];
-    for (let i = 0; i < spaces.length; ++i) {
-      if (spaces[i].state == req.body.state) {
-        result.push(spaces[i]);
-      }
-    }
+    let result = spaces.filter((s) => {
+      return s.state == req.body.state;
+    });
     res.status(200).send(result);
   } else {
     res.status(200).send(spaces);
@@ -23,7 +20,6 @@ router.get("/spaces/:id", (req, res, next) => {
   for (let i = 0; i < spaces.length; ++i) {
     if (spaces[i].id == Number(req.params.id)) {
       result = spaces[i];
-      console.log(result);
       res.status(200).send(result);
       return;
     }
@@ -32,11 +28,24 @@ router.get("/spaces/:id", (req, res, next) => {
 });
 
 router.post("/spaces", (req, res, next) => {
-  let space = `{"id":${counter}, "state":"free", "data":"original", "carID":"", "date":""}`;
-  console.log(JSON.parse(space));
-  spaces.push(JSON.parse(space));
+  if (typeof req.body.data === "undefined") {
+    res
+      .status(412)
+      .send({
+        error: true,
+        message: "No se proporcionó data sobre el espacio",
+      });
+    return;
+  }
+  let space = {
+    id: counter,
+    state: "free",
+    data: req.body.data,
+    carID: "",
+    date: "",
+  };
+  spaces.push(space);
   counter++;
-
   res.status(200).send({ error: false, message: "éxito al crear espacio" });
 });
 
@@ -79,17 +88,22 @@ router.get("/reservations", (req, res, next) => {
 });
 
 router.post("/reservations", (req, res, next) => {
-  console.log("spaces:", spaces);
+  if (typeof req.body.carID === "undefined") {
+    res
+      .status(412)
+      .send({ error: true, message: "No se proporcionó un carID" });
+    return;
+  }
   for (let i = 0; i < spaces.length; ++i) {
     if (spaces[i].state === "free") {
       spaces[i].state = "in-use";
       spaces[i].carID = req.body.carID;
       spaces[i].date = new Date();
-      res.send({ error: false, message: "éxito al reservar" });
+      res.status(201).send({ error: false, message: "éxito al reservar" });
       return;
     }
   }
-  res.send({ error: true, message: "No hay espacios disponibles" });
+  res.status(412).send({ error: true, message: "No hay espacios disponibles" });
 });
 
 router.delete("/reservations/:id", (req, res, next) => {

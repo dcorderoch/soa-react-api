@@ -15,7 +15,7 @@ main() {
   echo ""
 
   echo "expect error:false"
-  curl -H "$headers" -X POST   "$HOST/spaces"
+  curl -H "$headers" -X POST   "$HOST/spaces" -d '{"data":"algo"}'
   echo ""
   echo ""
 
@@ -50,7 +50,7 @@ main() {
   echo ""
 
   echo "expect error:false"
-  curl -H "$headers" -X POST   "$HOST/reservations"
+  curl -H "$headers" -X POST   "$HOST/reservations" -d '{"carID":"N0ICE"}'
   echo ""
   echo ""
 

@@ -2,25 +2,63 @@
 Basic WEB API
 """
 
+from datetime import datetime, timezone
 import json
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 import uuid
 
-from flask import (
-    Flask,
-    abort,
-    jsonify,
-    request,
-)
+from flask import Flask, jsonify, request, Response
 from flask_cors import CORS  # type: ignore
 
+
+def isoformat_js_like_date(tstamp: datetime):
+    """
+    get a javascript-like Date() ISO 8601 date string
+    """
+    return (
+        tstamp.astimezone(timezone.utc)
+        .isoformat(timespec="milliseconds")
+        .replace("+00:00", "Z")
+    )
+
+
 spaces = [
-    {"id": str(uuid.uuid4()), "state": "in-use"},
-    {"id": str(uuid.uuid4()), "state": "free"},
-    {"id": str(uuid.uuid4()), "state": "in-use"},
-    {"id": str(uuid.uuid4()), "state": "free"},
-    {"id": str(uuid.uuid4()), "state": "in-use"},
-    {"id": str(uuid.uuid4()), "state": "free"},
+    {
+        "id": str(uuid.uuid4()),
+        "data": "original",
+        "date": isoformat_js_like_date(datetime.now()),
+        "state": "in-use",
+    },
+    {
+        "id": str(uuid.uuid4()),
+        "data": "original",
+        "date": isoformat_js_like_date(datetime.now()),
+        "state": "free",
+    },
+    {
+        "id": str(uuid.uuid4()),
+        "data": "original",
+        "date": isoformat_js_like_date(datetime.now()),
+        "state": "in-use",
+    },
+    {
+        "id": str(uuid.uuid4()),
+        "data": "original",
+        "date": isoformat_js_like_date(datetime.now()),
+        "state": "free",
+    },
+    {
+        "id": str(uuid.uuid4()),
+        "data": "original",
+        "date": isoformat_js_like_date(datetime.now()),
+        "state": "in-use",
+    },
+    {
+        "id": str(uuid.uuid4()),
+        "data": "original",
+        "date": isoformat_js_like_date(datetime.now()),
+        "state": "free",
+    },
 ]
 
 app = Flask(__name__)
@@ -28,7 +66,7 @@ cors = CORS(app)
 app.config["CORS_HEADERS"] = "Content-Type"
 
 
-def get_memory_space(space_id: int) -> Optional[Dict[str, str]]:
+def get_memory_space(space_id: str) -> Optional[Dict[str, str]]:
     """
     get a space, or None
     """
@@ -38,7 +76,7 @@ def get_memory_space(space_id: int) -> Optional[Dict[str, str]]:
     return None
 
 
-def get_data_attribute(attribute: str) -> Optional[str]:
+def get_data_attribute(attr: str) -> Optional[str]:
     """
     get an attribute from a request, or None
     :param: attribute to get
@@ -46,14 +84,11 @@ def get_data_attribute(attribute: str) -> Optional[str]:
     """
     # requst is the global flask request object
     data = request.data
-    result = None
     if len(data) > 0:
-        raw_json = json.loads(data)
-        try:
-            result = raw_json[attribute]
-        except KeyError:
-            pass
-    return result
+        obj = json.loads(data)
+        if attr in obj.keys():
+            return obj[attr]
+    return None
 
 
 def get_next_id() -> str:
@@ -63,70 +98,103 @@ def get_next_id() -> str:
     return str(uuid.uuid4())
 
 
-# get array with all spaces
-# opt-param: state -> ['free', 'in-use']
+@app.route("/test", defaults={"identifier": None}, methods=["POST"])
+@app.route("/test/<identifier>", methods=["POST"])
+def test(identifier: str = None) -> Tuple[Response, int]:
+    """
+    test function for the API with explanation
+    """
+    if not request.is_json:
+        return (
+            jsonify({"msg": "Must use 'Content-type: application/json'"}),
+            415,
+        )
+
+    response = {"yo": "this is lit"}
+    status = 200
+
+    if identifier is not None:
+        response["identifier"] = identifier
+
+    return jsonify(response), status
+
+
 @app.route("/spaces", methods=["GET"])
-def get_all_spaces():
+def get_all_spaces() -> Tuple[Response, int]:
     """
     Get all the spaces
     """
     if not request.is_json:
-        return abort(415)
+        return (
+            jsonify({"msg": "Must use 'Content-type: application/json'"}),
+            415,
+        )
 
     place_filter = get_data_attribute("state")
 
     if place_filter is None:
-        return jsonify(spaces)
+        return jsonify(spaces), 200
 
     result = [s for s in spaces if s["state"] == place_filter]
-    return jsonify(result)
+    return jsonify(result), 200
 
 
-# get specific space's info
 @app.route("/spaces/<space_id>", methods=["GET"])
-def get_space(space_id):
+def get_space(space_id) -> Tuple[Response, int]:
     """
     Get a specific space
     """
     if not request.is_json:
-        return abort(415)
+        return (
+            jsonify({"msg": "Must use 'Content-type: application/json'"}),
+            415,
+        )
 
     space = get_memory_space(space_id)
     if space is None:
-        return abort(404)
+        return jsonify(msg="Space not found"), 404
 
-    return jsonify(space)
+    return jsonify(space), 200
 
 
-# # create a new space
 @app.route("/spaces", methods=["POST"])
-def create_space():
+def create_space() -> Tuple[Response, int]:
     """
     crate a new space
     """
     if not request.is_json:
-        return abort(415)
+        return (
+            jsonify({"msg": "Must use 'Content-type: application/json'"}),
+            415,
+        )
 
     place_data = get_data_attribute("data")
 
     if place_data is None:
-        return abort(400)
+        return jsonify(""), 400
 
-    space = {"id": get_next_id(), "state": "free", "data": place_data}
+    space = {
+        "id": get_next_id(),
+        "state": "free",
+        "data": place_data,
+        "date": isoformat_js_like_date(datetime.now()),
+    }
 
     spaces.append(space)
 
-    return jsonify(success=True)
+    return jsonify(""), 201
 
 
-# update a space's info
 @app.route("/spaces/<space_id>", methods=["PUT"])
-def change_place(space_id):
+def change_place(space_id) -> Tuple[Response, int]:
     """
     modify a specific space
     """
     if not request.is_json:
-        abort(415)
+        return (
+            jsonify({"msg": "Must use 'Content-type: application/json'"}),
+            415,
+        )
 
     new_data = get_data_attribute("data")
 
@@ -135,37 +203,65 @@ def change_place(space_id):
     if space is None:
         return create_space()
 
-    space["data"] = new_data
+    space["data"] = str(new_data)
 
-    return jsonify(success=True)
+    return jsonify(""), 200
 
 
-# delete a space
 @app.route("/spaces/<space_id>", methods=["DELETE"])
-def delete_space(space_id):
+def delete_space(space_id) -> Tuple[Response, int]:
     """
     delete a space
     """
     space = get_memory_space(space_id)
 
     if space is None:
-        return abort(404)
+        return jsonify(""), 404
 
     spaces.remove(space)
-    return jsonify(success=True)
+    return jsonify(""), 200
 
 
-# # get array with all vehicles
-# # ({ 'placa': '[a-zA-Z0-9]', 'hora': '00:00:00 000', 'space': '<space_id>'})
-# @app.route('/reservations', methods=['GET']):
+@app.route("/reservations", methods=["GET"])
+def get_all_reservations() -> Tuple[Response, int]:
+    """
+    get array with all vehicles
+    """
+    if not request.is_json:
+        return (
+            jsonify({"msg": "Must use 'Content-type: application/json'"}),
+            415,
+        )
 
-# # reserve a random free space, return <space_id> and <reservation>,
-# # receive 'placa'
-# @app.route('/reservations', methods=['POST']):
+    result = [s for s in spaces if s["state"] == "in-use"]
+    return jsonify(result), 200
 
-# # delete a reservation, thus freeing a space, receives <reservation>
-# @app.route('/reservations/<reservation>', methods=['DELETE']):
+
+@app.route("/reservations", methods=["POST"])
+def create_reservation() -> Tuple[Response, int]:
+    """
+    reserve a random free space
+    """
+    car_id = get_data_attribute("placa")
+    for space in spaces:
+        if space["state"] == "free":
+            space["placa"] = car_id
+            space["state"] = "in-use"
+            space["date"] = isoformat_js_like_date(datetime.now())
+            return jsonify({"msg": space}), 201
+    return jsonify({"msg": "no free spaces available"}), 409
+
+
+@app.route("/reservations/<space_id>", methods=["DELETE"])
+def delete_reservation(space_id: str) -> Tuple[Response, int]:
+    """
+    free up a space that was reserved
+    """
+    space = get_memory_space(space_id)
+    if space is None:
+        return jsonify(""), 404
+    return jsonify(""), 200
+
 
 if __name__ == "__main__":
-    # app.run(ssl_context='adhoc')
     app.run()

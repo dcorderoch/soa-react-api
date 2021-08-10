@@ -130,7 +130,7 @@ def get_all_spaces() -> Tuple[Response, int]:
             415,
         )
 
-    place_filter = get_data_attribute("state")
+    place_filter = request.args.get('state')
 
     if place_filter is None:
         return jsonify(spaces), 200

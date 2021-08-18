@@ -98,6 +98,23 @@ def get_next_id() -> str:
     return str(uuid.uuid4())
 
 
+def build_response(status_code: int, msg: str = None) -> Tuple[Response, int]:
+    """
+    generalized (but still specific for this API)
+    response builder
+    """
+    msg = msg if msg is not None else ""
+    return jsonify({"msg": msg}), status_code
+
+
+def unsupported_mime_type() -> Tuple[Response, int]:
+    """
+    response for requests that don't use
+    'Content-type: application/json'
+    """
+    return build_response(415, "Must use 'Content-type: application/json'")
+
+
 @app.route("/test", defaults={"identifier": None}, methods=["POST"])
 @app.route("/test/<identifier>", methods=["POST"])
 def test(identifier: str = None) -> Tuple[Response, int]:
@@ -105,10 +122,7 @@ def test(identifier: str = None) -> Tuple[Response, int]:
     test function for the API with explanation
     """
     if not request.is_json:
-        return (
-            jsonify({"msg": "Must use 'Content-type: application/json'"}),
-            415,
-        )
+        return unsupported_mime_type()
 
     response = {"yo": "this is lit"}
     status = 200
@@ -125,10 +139,7 @@ def get_all_spaces() -> Tuple[Response, int]:
     Get all the spaces
     """
     if not request.is_json:
-        return (
-            jsonify({"msg": "Must use 'Content-type: application/json'"}),
-            415,
-        )
+        return unsupported_mime_type()
 
     if len(spaces) == 0:
         return jsonify(result), 200
@@ -169,20 +180,18 @@ def get_pag_spaces(pag) -> Tuple[Response, int]:
     """
     Get  spaces by pages
     """
-    pag = int(pag)
     if not request.is_json:
-        return (
-            jsonify({"msg": "Must use 'Content-type: application/json'"}),
-            415,
-        )
+        return unsupported_mime_type()
+
+    pag = int(pag)
+
     pagination = []
     for i in range(0, len(spaces), 4):
         pagination.append(spaces[i : i + 4])
+
     if len(pagination) <= pag:
-        return (
-            jsonify({"msg": "invalid page"}),
-            400,
-        )
+        return jsonify({"msg": "Invalid Page"}), 400
+
     place_filter = request.args.get("state")
 
     if place_filter is None:
@@ -199,10 +208,7 @@ def get_space(space_id) -> Tuple[Response, int]:
     Get a specific space
     """
     if not request.is_json:
-        return (
-            jsonify({"msg": "Must use 'Content-type: application/json'"}),
-            415,
-        )
+        return unsupported_mime_type()
 
     space = get_memory_space(space_id)
     if space is None:
@@ -217,15 +223,12 @@ def create_space() -> Tuple[Response, int]:
     crate a new space
     """
     if not request.is_json:
-        return (
-            jsonify({"msg": "Must use 'Content-type: application/json'"}),
-            415,
-        )
+        return unsupported_mime_type()
 
     place_data = get_data_attribute("data")
 
     if place_data is None:
-        return jsonify(""), 400
+        return jsonify({"msg": "Bad Request"}), 400
 
     space = {
         "id": get_next_id(),
@@ -245,10 +248,7 @@ def change_place(space_id) -> Tuple[Response, int]:
     modify a specific space
     """
     if not request.is_json:
-        return (
-            jsonify({"msg": "Must use 'Content-type: application/json'"}),
-            415,
-        )
+        return unsupported_mime_type()
 
     new_data = get_data_attribute("data")
 
@@ -270,7 +270,7 @@ def delete_space(space_id) -> Tuple[Response, int]:
     space = get_memory_space(space_id)
 
     if space is None:
-        return jsonify(""), 404
+        return jsonify("Space not found"), 404
 
     spaces.remove(space)
     return jsonify(""), 200
@@ -282,10 +282,7 @@ def get_all_reservations() -> Tuple[Response, int]:
     get array with all vehicles
     """
     if not request.is_json:
-        return (
-            jsonify({"msg": "Must use 'Content-type: application/json'"}),
-            415,
-        )
+        return unsupported_mime_type()
 
     result = [s for s in spaces if s["state"] == "in-use"]
     return jsonify(result), 200
@@ -308,10 +305,8 @@ def get_pag_reservations(pag) -> Tuple[Response, int]:
     for i in range(0, len(result), 4):
         pagination.append(result[i : i + 4])
     if len(pagination) <= pag:
-        return (
-            jsonify({"msg": "invalid page"}),
-            400,
-        )
+        return jsonify({"msg": "Invalid Page"}), 400
+
     return jsonify(pagination[pag]), 200
 
 
@@ -337,7 +332,7 @@ def delete_reservation(space_id: str) -> Tuple[Response, int]:
     """
     space = get_memory_space(space_id)
     if space is None:
-        return jsonify(""), 404
+        return jsonify("Space not found"), 404
     return jsonify(""), 200
 
 

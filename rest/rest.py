@@ -136,9 +136,36 @@ def get_all_spaces() -> Tuple[Response, int]:
         return jsonify(spaces), 200
 
     result = [s for s in spaces if s["state"] == place_filter]
+
     return jsonify(result), 200
 
 
+@app.route("/spaces/<pag>", methods=["GET"])
+def get_pag_spaces(pag) -> Tuple[Response, int]:
+    """
+    Get  spaces by pages
+    """
+    pag=int(pag)
+    if not request.is_json:
+        return (
+            jsonify({"msg": "Must use 'Content-type: application/json'"}),
+            415,
+        )
+    pagination=[]
+    for i in range(0,len(spaces),4):
+        pagination.append(spaces[i:i + 4])
+    if(len(pagination)<=pag):
+        return (jsonify({"msg":"invalid page"}),
+        400,
+        )
+    place_filter = request.args.get('state')
+
+    if place_filter is None:
+        return jsonify(pagination[pag]), 200
+
+    result = [s for s in pagination[pag] if s["state"] == place_filter]
+
+    return jsonify(result), 200
 @app.route("/spaces/<space_id>", methods=["GET"])
 def get_space(space_id) -> Tuple[Response, int]:
     """
@@ -236,7 +263,27 @@ def get_all_reservations() -> Tuple[Response, int]:
     result = [s for s in spaces if s["state"] == "in-use"]
     return jsonify(result), 200
 
+@app.route("/reservations/<pag>", methods=["GET"])
+def get_pag_reservations(pag) -> Tuple[Response, int]:
+    """
+    get array with all vehicles
+    """
+    pag=int(pag)
+    if not request.is_json:
+        return (
+            jsonify({"msg": "Must use 'Content-type: application/json'"}),
+            415,
+        )
 
+    result = [s for s in spaces if s["state"] == "in-use"]
+    pagination=[]
+    for i in range(0,len(result),4):
+        pagination.append(result[i:i + 4])
+    if(len(pagination)<=pag):
+        return (jsonify({"msg":"invalid page"}),
+        400,
+        )
+    return jsonify(pagination[pag]), 200
 @app.route("/reservations", methods=["POST"])
 def create_reservation() -> Tuple[Response, int]:
     """

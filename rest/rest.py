@@ -9,6 +9,7 @@ import uuid
 
 from flask import Flask, jsonify, request, Response
 from flask_cors import CORS  # type: ignore
+from flask_swagger_ui import get_swaggerui_blueprint
 
 
 def isoformat_js_like_date(tstamp: datetime):
@@ -64,6 +65,16 @@ spaces = [
 app = Flask(__name__)
 cors = CORS(app)
 app.config["CORS_HEADERS"] = "Content-Type"
+
+SWAGGER_URL = "/swagger"
+
+API_URL = "/static/swagger.json"
+
+SWAGGERUI_BLUEPRINT = get_swaggerui_blueprint(
+    SWAGGER_URL, API_URL, config={"app_name": "Spaces reservation"}
+)
+
+app.register_blueprint(SWAGGERUI_BLUEPRINT, url_prefix=SWAGGER_URL)
 
 
 def get_memory_space(space_id: str) -> Optional[Dict[str, str]]:
@@ -146,8 +157,12 @@ def get_all_spaces() -> Tuple[Response, int]:
 
     place_filter = request.args.get("state")
     attrs = ()
-    print(1, attrs)
+    valid_attrs = ("id", "data", "date", "state")
+    valid_params = ("attributes", "state")
     for k, v in request.args.items():
+        if k not in valid_params:
+            return jsonify({"msg": "Invalid Parameter"}), 400
+
         if k == "state":
             continue
 
@@ -157,16 +172,24 @@ def get_all_spaces() -> Tuple[Response, int]:
             return jsonify({"msg": "Invalid Empty Attribute"}), 400
 
         for a in attrs:
-            if a not in ("id", "data", "date", "state"):
+            if a not in valid_attrs:
                 return jsonify({"msg": "Invalid Attribute"}), 400
 
     no_filter = place_filter is None
+    no_attrs = attrs == tuple()
+
     matches = lambda s: s["state"] == place_filter
-    _result = (*(s for s in spaces if no_filter or matches(s)),)
+    filtered = (*(s for s in spaces if no_filter or matches(s)),)
+
+    if no_filter and no_attrs:
+        return jsonify(filtered), 200
+
+    if no_attrs:
+        return jsonify(filtered), 200
 
     result = ()
     tmp = {}
-    for s in _result:
+    for s in filtered:
         for a in attrs:
             tmp[a] = s[a]
         result = (*result, tmp)

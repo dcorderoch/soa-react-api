@@ -130,12 +130,36 @@ def get_all_spaces() -> Tuple[Response, int]:
             415,
         )
 
+    if len(spaces) == 0:
+        return jsonify(result), 200
+
     place_filter = request.args.get("state")
+    attrs = ()
+    print(1, attrs)
+    for k, v in request.args.items():
+        if k == "state":
+            continue
 
-    if place_filter is None:
-        return jsonify(spaces), 200
+        tmp = v.split(sep=",")
+        attrs = (*(a for a in tmp if a != ""),)
+        if len(tmp) != len(attrs):
+            return jsonify({"msg": "Invalid Empty Attribute"}), 400
 
-    result = [s for s in spaces if s["state"] == place_filter]
+        for a in attrs:
+            if a not in ("id", "data", "date", "state"):
+                return jsonify({"msg": "Invalid Attribute"}), 400
+
+    no_filter = place_filter is None
+    matches = lambda s: s["state"] == place_filter
+    _result = (*(s for s in spaces if no_filter or matches(s)),)
+
+    result = ()
+    tmp = {}
+    for s in _result:
+        for a in attrs:
+            tmp[a] = s[a]
+        result = (*result, tmp)
+        tmp = {}
 
     return jsonify(result), 200
 
